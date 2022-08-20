@@ -1,0 +1,99 @@
+---
+title: "Visualización de Gráficos"
+author: "Carlos Aguirre Coveñas"
+date: "Agosto 2022"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(haven)
+library(utils)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introducción
+
+- En la siguiente presentación se mostrará el uso de algunos gráficos para la visualización de datos.
+- Se utilizarán las bases de datos de la Encuesta Nacional de Hogares (ENAHO) del INEI
+
+
+```{r bases, include=TRUE}
+setwd("C:/Rstudio/analisislambda")
+sumaria <- read_dta("634-Modulo34/sumaria-2018.dta")
+educacion <- read_dta("634-Modulo03/enaho01a-2018-300.dta")
+
+```
+
+## Bases de datos
+
+- A partir de las bases de datos ***sumaria*** y ***educacion*** se crea una base de datos llamada ***basefinal***
+
+```{r program, include=FALSE}
+baseinicial <- merge.data.frame(x = sumaria, y = educacion, by = intersect(c("conglome","vivienda","hogar"), c("conglome","vivienda","hogar")))
+basefinal <- baseinicial[,c("conglome", "vivienda", "hogar","mes.x","dominio.x", "estrato.x", "mieperho", "inghog2d", "gashog2d", "linpe","pobreza","estrsocial", "codperso", "codinfor", "p300a", "p301a", "p301d", "p207","p209")]
+
+```
+
+- Y se renombran las variables *p207* por *Sexo* y *p209* por *Estado civil*
+
+```{r, include=FALSE}
+basefinal$p207 <- factor(basefinal$p207,label = c("hombre","mujer"))
+basefinal$p209 <- factor(basefinal$p209,label = c("conviviente","casado","viudo","divorciado","separado","soltero"))
+```
+
+```{r, include=TRUE}
+basefinal <- rename(basefinal,"Sexo"=p207)
+basefinal <- rename(basefinal,"Estado civil"=p209)
+```
+
+## Box Plot
+
+```{r boxplot, fig.align='center', out.width="70%", include=TRUE}
+ggplot(sumaria,aes(x=mes,y=inghog2d)) +
+  geom_boxplot() +
+  ggtitle("Gráfico de ingresos por mes", subtitle = "(En soles)") +
+  xlab("Meses del año") +
+  ylab("Ingreso del hogar")
+```
+
+
+## Gráfico de Dispersión
+
+
+```{r scatter, fig.align='center', out.width="70%", include=TRUE}
+ggplot(basefinal,aes(gashog2d,inghog2d)) +
+  geom_point(aes(color = factor(pobreza),alpha = 0.2))
+```
+
+
+## Histograma
+
+```{r histogram3, fig.align='center', out.width="70%", include=TRUE}
+ggplot(sumaria,aes(gashog2d)) +
+  geom_histogram(bins = 100, color = "blue", fill = "green")
+```
+
+
+## Gráfico de Barras
+
+```{r, include=FALSE}
+grafico <- basefinal %>% 
+  group_by(estrsocial, Sexo) %>% 
+  summarise(gasto = round(mean(gashog2d),2))
+```
+
+```{r barras2, fig.align='center', out.width="70%", include=TRUE}
+ggplot(grafico, aes(x = as.integer(estrsocial), y = gasto, 
+                    fill = as.factor(Sexo), 
+                    label = scales::comma(gasto, accuracy = 2))) +
+  geom_bar(stat= "identity", show.legend = T) + 
+  geom_text(size = 2.5, position = position_stack(vjus = 0.75))
+```
+
+
+
+
+
